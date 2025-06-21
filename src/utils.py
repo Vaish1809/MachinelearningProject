@@ -1,17 +1,29 @@
-import sys
+#all functions in this file are used to process the data
 
-def error_message_detail(error, error_detail:sys):
+import os
+import sys  
+from dataclasses import dataclass
+import pandas as pd 
+import numpy as np
+from src.exception import CustomException
+from src.logger import logging
+import dill
+def save_object(file_path:str, obj: object):
     """
-    This function is used to format the error message with details.
+    This function saves an object to a file using pandas.
+    
+    Parameters:
+    - file_path (str): The path where the object will be saved.
+    - obj (object): The object to be saved.
     """
-    _, _, exc_tb = error_detail.exc_info()
-    file_name = exc_tb.tb_frame.f_code.co_filename
-    error_message = f"Error occurred in script: [{file_name}] at line number: [{exc_tb.tb_lineno}] with message: [{str(error)}]"
-    return error_message
+    try:
+        dir_path = os.path.dirname(file_path)
 
-class CustomException(Exception):
-    def __init__(self, error_messgage, error_detail:sys):
-        super().__init__(error_messgage)
-        self.error_message = error_message_detail(error_messgage, error_detail= error_detail)
-    def __str__(self):
-        return self.error_message
+        os.makedirs(dir_path, exist_ok=True)
+        logging.info(f"Creating directory at {dir_path} if it does not exist.")
+        
+        with open(file_path, 'wb') as file_obj:
+            dill.dump(obj, file_obj)
+       
+    except Exception as e:
+        raise CustomException(e, sys) from e
