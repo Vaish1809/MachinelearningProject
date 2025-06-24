@@ -35,8 +35,8 @@ class DataTransformation:
         It handles numerical and categorical features separately.
         """
         try:
-            numerical_features = ['writing_score', 'reading_score']
-            categorical_features =["gender","race_thnicity", "parental_level_of_education", "lunch", "test_preparation_course"]
+            numerical_columns = ['writing_score', 'reading_score']
+            categorical_columns =["gender","race_ethnicity", "parental_level_of_education", "lunch", "test_preparation_course"]
 
             # Numerical pipeline
             numerical_pipeline = Pipeline(
@@ -51,17 +51,19 @@ class DataTransformation:
                 steps=[
                 ('imputer', SimpleImputer(strategy='most_frequent')),
                 ('onehotencoder', OneHotEncoder()),
-                ('scaler', StandardScaler())
+                ('scaler', StandardScaler(with_mean=False))  # Set with_mean=False to avoid issues with sparse matrices
             ]
             )
             logging.info("Categorical pipelines created successfully")
+            # Combine both pipelines into a preprocessor
             preprocessor = ColumnTransformer(
              [
-                    ('numerical_pipeline', numerical_pipeline, numerical_features),
-                    ('categorical_pipeline', categorical_pipeline, categorical_features)
+                    ('numerical_pipeline', numerical_pipeline, numerical_columns),
+                    ('categorical_pipeline', categorical_pipeline, categorical_columns)
                 ]
             )
             return preprocessor
+        
         except Exception as e:
             raise CustomException(e, sys)
         
@@ -78,22 +80,42 @@ class DataTransformation:
                 preprocessor_obj = self.get_data_transformer_object()
 
                 target_column_name = 'math_score'
-                numerical_features = ['writing_score', 'reading_score']
+                numerical_columns = ['writing_score', 'reading_score']
 
+                #Xtrain
                 input_feature_train_df = train_df.drop(columns=[target_column_name], axis=1)
+                #Ytrain
+                target_feature_train_df = train_df[target_column_name]
+                #Xtest
                 input_feature_test_df = test_df.drop(columns=[target_column_name], axis=1)
+                #ytest
+                target_feature_test_df = test_df[target_column_name]
                 
+                logging.info("Applying preprocessing object on training and testing dataframes")
 
-
-
+                # Transform the input features
+                input_feature_train_arr = preprocessor_obj.fit_transform(input_feature_train_df)    
+                input_feature_test_arr = preprocessor_obj.transform(input_feature_test_df)
+                train_arr = np.c_[
+                    input_feature_train_arr,np.array(target_feature_train_df)
+                ]
+                test_arr = np.c_[
+                    input_feature_test_arr, np.array(target_feature_test_df)
+                ]
+                logging.info("Saved preprocessor object")
 
                 save_object(
                     file_path = self.data_transformation_config.preprocessor_obj_file_path,
                     obj = preprocessor_obj
                 )
+                return(
+                    train_arr,
+                    test_arr,
+                    self.data_transformation_config.preprocessor_obj_file_path,   
 
-                
-                pass
+                )
+
+              
             except Exception as e:
                 raise CustomException(e, sys)
             
