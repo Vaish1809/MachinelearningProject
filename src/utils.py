@@ -10,8 +10,8 @@ from src.logger import logging
 import dill
 from sklearn.metrics import r2_score
 
-
-def evaluate_model(X_train, y_train, X_test, y_test, models):
+from sklearn.model_selection import GridSearchCV
+def evaluate_model(X_train, y_train, X_test, y_test, models,param):
     """
     This function evaluates the performance of a given model.
     
@@ -28,7 +28,14 @@ def evaluate_model(X_train, y_train, X_test, y_test, models):
     try:
         report = {}
         for i in range(len(list(models))):
+        
             model = list(models.values())[i]
+            para= param[list(models.keys())[i]]
+
+            print(f"Training model:", model)
+            gs = GridSearchCV(model,para,cv=3)
+            gs.fit(X_train,y_train)
+            model.set_params(**gs.best_params_)
             model.fit(X_train, y_train)
             y_train_pred = model.predict(X_train)
             y_test_pred = model.predict(X_test)
@@ -61,3 +68,9 @@ def save_object(file_path:str, obj: object):
     except Exception as e:
         raise CustomException(e, sys) from e
     
+def load_object(filepath):
+    try:
+        with open(filepath,'rb') as file_obj:
+            return dill.load(file_obj)
+    except Exception as e:
+        raise CustomException(e, sys) 
